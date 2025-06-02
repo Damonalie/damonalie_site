@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Annuaire Visuel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /* Reset & base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Poppins', 'Arial', sans-serif;
+      background: #fff;
+      color: #2a2142;
+      padding: 1rem;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    h1 {
+      font-weight: 700;
+      color: #7b61ff;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    select {
+      appearance: none;
+      background: #f4f0ff;
+      border: 2px solid #7b61ff;
+      border-radius: 8px;
+      padding: 0.6rem 1.2rem;
+      font-size: 1rem;
+      color: #2a2142;
+      cursor: pointer;
+      transition: border-color 0.3s ease;
+      min-width: 180px;
+      box-shadow: inset 0 2px 5px rgba(123,97,255,0.15);
+    }
+    select:hover, select:focus {
+      border-color: #563dff;
+      outline: none;
+    }
+
+    /* Cards container */
+    #cardsContainer {
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Individual card */
+    .card {
+      background: #f9f7ff;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px rgba(123, 97, 255, 0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(123, 97, 255, 0.3);
+    }
+    .card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+      border-bottom: 3px solid #7b61ff;
+    }
+
+    .card-content {
+      padding: 1rem 1.3rem 1.5rem;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #7b61ff;
+      margin-bottom: 0.3rem;
+      line-height: 1.2;
+    }
+    .card-sub {
+      font-size: 0.9rem;
+      color: #7b61ffcc;
+      font-weight: 600;
+      margin-bottom: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .card-desc {
+      flex-grow: 1;
+      font-size: 1rem;
+      line-height: 1.4;
+      color: #4a446d;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 480px) {
+      body {
+        padding: 0.5rem;
+      }
+      select {
+        min-width: 100%;
+      }
+      #cardsContainer {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .card img {
+        height: 140px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Annuaire Visuel</h1>
+  <div class="filters">
+    <select id="villeFilter">
+      <option value="">Toutes les villes</option>
+    </select>
+    <select id="catFilter">
+      <option value="">Toutes les catégories</option>
+    </select>
+  </div>
+
+  <div id="cardsContainer"></div>
+
+  <script>
+    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmt_uxp_hSTi3nP02TgadadT6WHRKAeZg2evMq64Q_gUMBbvnNUcYVWp55ONA0CZ_mzpAWZCHbGfcI/pub?output=tsv";
+
+    async function fetchData() {
+      const res = await fetch(SHEET_URL);
+      const text = await res.text();
+      const lines = text.trim().split("\n");
+      const headers = lines[0].split("\t");
+      const data = lines.slice(1).map(line => {
+        const values = line.split("\t");
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = values[i]);
+        return obj;
+      });
+      return data;
+    }
+
+    function populateFilters(data) {
+      const villeSet = new Set(data.map(d => d.Ville));
+      const catSet = new Set(data.map(d => d.Catégorie));
+      const villeFilter = document.getElementById('villeFilter');
+      const catFilter = document.getElementById('catFilter');
+
+      villeSet.forEach(v => {
+        if (v) {
+          const opt = document.createElement('option');
+          opt.value = v;
+          opt.textContent = v;
+          villeFilter.appendChild(opt);
+        }
+      });
+      catSet.forEach(c => {
+        if (c) {
+          const opt = document.createElement('option');
+          opt.value = c;
+          opt.textContent = c;
+          catFilter.appendChild(opt);
+        }
+      });
+    }
+
+    function renderCards(data) {
+      const villeFilter = document.getElementById('villeFilter');
+      const catFilter = document.getElementById('catFilter');
+      const cardsContainer = document.getElementById('cardsContainer');
+
+      const ville = villeFilter.value;
+      const cat = catFilter.value;
+      const filtered = data.filter(d =>
+        (!ville || d.Ville === ville) &&
+        (!cat || d.Catégorie === cat)
+      );
+      cardsContainer.innerHTML = filtered.map(d => `
+        <div class="card" tabindex="0">
+          <img src="${d.ImageURL || 'https://via.placeholder.com/400x180?text=Image+manquante'}" alt="${d.Nom || 'Image'}" loading="lazy" />
+          <div class="card-content">
+            <div class="card-title">${d.Nom || ''}</div>
+            <div class="card-sub">${d.Ville || ''} — ${d.Catégorie || ''}</div>
+            <div class="card-desc">${d.Description || ''}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    let allData = [];
+    fetchData().then(data => {
+      allData = data;
+      populateFilters(data);
+      renderCards(data);
+
+      document.getElementById('villeFilter').addEventListener("change", () => renderCards(allData));
+      document.getElementById('catFilter').addEventListener("change", () => renderCards(allData));
+    });
+  </script>
+</body>
+</html>
