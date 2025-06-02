@@ -162,81 +162,84 @@
   </div>
   
   <script>
-    
-    const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmt_uxp_hSTi3nP02TgadadT6WHRKAeZg2evMq64Q_gUMBbvnNUcYVWp55ONA0CZ_mzpAWZCHbGfcI/pub?output=tsv";
-    
-    document.getElementById("loader").style.display = "block";
-    async function fetchData() {
-      const res = await fetch(SHEET_URL);
-      const text = await res.text();
-      const lines = text.trim().split("\n");
-      const headers = lines[0].split("\t");
-      const data = lines.slice(1).map(line => {
-        const values = line.split("\t");
-        const obj = {};
-        headers.forEach((h, i) => obj[h] = values[i]);
-        return obj;
-      });
-      return data;
-    }
+  const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmt_uxp_hSTi3nP02TgadadT6WHRKAeZg2evMq64Q_gUMBbvnNUcYVWp55ONA0CZ_mzpAWZCHbGfcI/pub?output=tsv";
+
+  document.getElementById("loader").style.display = "block";
+
+  async function fetchData() {
+    const res = await fetch(SHEET_URL);
+    const text = await res.text();
+    const lines = text.trim().split("\n");
+    const headers = lines[0].split("\t");
+    const data = lines.slice(1).map(line => {
+      const values = line.split("\t");
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = values[i]);
+      return obj;
+    });
+    return data;
+  }
+
+  function populateFilters(data) {
+    const villeSet = new Set(data.map(d => d.Ville));
+    const catSet = new Set(data.map(d => d.Catégorie));
+    const villeFilter = document.getElementById('villeFilter');
+    const catFilter = document.getElementById('catFilter');
+
+    villeSet.forEach(v => {
+      if (v) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        villeFilter.appendChild(opt);
+      }
+    });
+    catSet.forEach(c => {
+      if (c) {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        catFilter.appendChild(opt);
+      }
+    });
+  }
+
+  function renderCards(data) {
+    const villeFilter = document.getElementById('villeFilter');
+    const catFilter = document.getElementById('catFilter');
+    const cardsContainer = document.getElementById('cardsContainer');
+
+    const ville = villeFilter.value;
+    const cat = catFilter.value;
+    const filtered = data.filter(d =>
+      (!ville || d.Ville === ville) &&
+      (!cat || d.Catégorie === cat)
+    );
+    cardsContainer.innerHTML = filtered.map(d => `
+      <div class="card" tabindex="0">
+        <img src="${d.ImageURL || 'https://via.placeholder.com/400x180?text=Image+manquante'}" alt="${d.Nom || 'Image'}" loading="lazy" />
+        <div class="card-content">
+          <div class="card-title">${d.Nom || ''}</div>
+          <div class="card-sub">${d.Ville || ''} — ${d.Catégorie || ''}</div>
+          <div class="card-desc">${d.Description || ''}</div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  let allData = [];
+  fetchData().then(data => {
+    allData = data;
+    populateFilters(data);
+    renderCards(data);
+
+    // 👉 Le loader disparaît seulement quand tout est prêt
     document.getElementById("loader").style.display = "none";
 
-    function populateFilters(data) {
-      const villeSet = new Set(data.map(d => d.Ville));
-      const catSet = new Set(data.map(d => d.Catégorie));
-      const villeFilter = document.getElementById('villeFilter');
-      const catFilter = document.getElementById('catFilter');
+    document.getElementById('villeFilter').addEventListener("change", () => renderCards(allData));
+    document.getElementById('catFilter').addEventListener("change", () => renderCards(allData));
+  });
+</script>
 
-      villeSet.forEach(v => {
-        if (v) {
-          const opt = document.createElement('option');
-          opt.value = v;
-          opt.textContent = v;
-          villeFilter.appendChild(opt);
-        }
-      });
-      catSet.forEach(c => {
-        if (c) {
-          const opt = document.createElement('option');
-          opt.value = c;
-          opt.textContent = c;
-          catFilter.appendChild(opt);
-        }
-      });
-    }
-
-    function renderCards(data) {
-      const villeFilter = document.getElementById('villeFilter');
-      const catFilter = document.getElementById('catFilter');
-      const cardsContainer = document.getElementById('cardsContainer');
-
-      const ville = villeFilter.value;
-      const cat = catFilter.value;
-      const filtered = data.filter(d =>
-        (!ville || d.Ville === ville) &&
-        (!cat || d.Catégorie === cat)
-      );
-      cardsContainer.innerHTML = filtered.map(d => `
-        <div class="card" tabindex="0">
-          <img src="${d.ImageURL || 'https://via.placeholder.com/400x180?text=Image+manquante'}" alt="${d.Nom || 'Image'}" loading="lazy" />
-          <div class="card-content">
-            <div class="card-title">${d.Nom || ''}</div>
-            <div class="card-sub">${d.Ville || ''} — ${d.Catégorie || ''}</div>
-            <div class="card-desc">${d.Description || ''}</div>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    let allData = [];
-    fetchData().then(data => {
-      allData = data;
-      populateFilters(data);
-      renderCards(data);
-
-      document.getElementById('villeFilter').addEventListener("change", () => renderCards(allData));
-      document.getElementById('catFilter').addEventListener("change", () => renderCards(allData));
-    });
-  </script>
 </body>
 </html>
