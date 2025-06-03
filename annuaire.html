@@ -162,27 +162,19 @@
   </div>
   
   <script>
-  const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSmt_uxp_hSTi3nP02TgadadT6WHRKAeZg2evMq64Q_gUMBbvnNUcYVWp55ONA0CZ_mzpAWZCHbGfcI/pub?output=tsv";
+  const JSON_URL = "https://raw.githubusercontent.com/[ton-username]/[ton-repo-public]/main/annuaire.json";
 
   document.getElementById("loader").style.display = "block";
 
   async function fetchData() {
-    const res = await fetch(SHEET_URL);
-    const text = await res.text();
-    const lines = text.trim().split("\n");
-    const headers = lines[0].split("\t");
-    const data = lines.slice(1).map(line => {
-      const values = line.split("\t");
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = values[i]);
-      return obj;
-    });
+    const res = await fetch(JSON_URL);
+    const data = await res.json();
     return data;
   }
 
   function populateFilters(data) {
-    const villeSet = new Set(data.map(d => d.Ville));
-    const catSet = new Set(data.map(d => d.Catégorie));
+    const villeSet = new Set(data.map(d => d.ville));
+    const catSet = new Set(data.map(d => d.genre));
     const villeFilter = document.getElementById('villeFilter');
     const catFilter = document.getElementById('catFilter');
 
@@ -212,16 +204,16 @@
     const ville = villeFilter.value;
     const cat = catFilter.value;
     const filtered = data.filter(d =>
-      (!ville || d.Ville === ville) &&
-      (!cat || d.Catégorie === cat)
+      (!ville || d.ville === ville) &&
+      (!cat || d.genre === cat)
     );
     cardsContainer.innerHTML = filtered.map(d => `
       <div class="card" tabindex="0">
-        <img src="${d.ImageURL || 'https://via.placeholder.com/400x180?text=Image+manquante'}" alt="${d.Nom || 'Image'}" loading="lazy" />
+        <img src="${d.photo || 'https://via.placeholder.com/400x180?text=Image+manquante'}" alt="${d.nom || 'Image'}" loading="lazy" />
         <div class="card-content">
-          <div class="card-title">${d.Nom || ''}</div>
-          <div class="card-sub">${d.Ville || ''} — ${d.Catégorie || ''}</div>
-          <div class="card-desc">${d.Description || ''}</div>
+          <div class="card-title">${d.nom || ''}</div>
+          <div class="card-sub">${d.ville || ''} — ${d.genre || ''}</div>
+          <div class="card-desc">${d.bio || ''}</div>
         </div>
       </div>
     `).join("");
